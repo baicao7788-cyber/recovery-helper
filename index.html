@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="康复助手">
+<meta name="theme-color" content="#fbf4ec">
+<meta name="robots" content="noindex">
+<title>康复助手</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-title">
+    <div id="hello" class="hello">康复助手</div>
+    <div id="daybadge" class="daybadge"></div>
+  </div>
+  <div class="top-actions">
+    <button id="btnSos" class="icon-btn sos" aria-label="紧急情况">急</button>
+    <button id="btnSettings" class="icon-btn" aria-label="设置">设</button>
+  </div>
+</header>
+
+<main id="view"></main>
+
+<nav class="tabs" role="tablist">
+  <button data-tab="today" class="tab active">今天</button>
+  <button data-tab="log" class="tab">记录</button>
+  <button data-tab="food" class="tab">吃什么</button>
+  <button data-tab="week" class="tab">每周</button>
+</nav>
+
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="sheet" id="sheet"></div>
+</div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

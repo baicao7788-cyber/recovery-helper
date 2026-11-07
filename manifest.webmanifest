@@ -1,0 +1,13 @@
+{
+  "name": "康复助手",
+  "short_name": "康复助手",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fbf4ec",
+  "theme_color": "#fbf4ec",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
