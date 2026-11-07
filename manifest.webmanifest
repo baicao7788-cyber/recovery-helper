@@ -1,6 +1,6 @@
 {
-  "name": "康复助手",
-  "short_name": "康复助手",
+  "name": "起来走走",
+  "short_name": "起来走走",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

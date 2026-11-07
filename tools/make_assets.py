@@ -1,4 +1,4 @@
-"""Generate app icons and the fallback reminders.ics.
+"""Generate app icons and the fallback reminders.ics (08:00-22:00, hourly).
 
 Usage: python3 tools/make_assets.py [--surgery YYYY-MM-DD] [--start YYYY-MM-DD]
 """
@@ -9,21 +9,14 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
-TOTAL_DAYS = 30
 URL = "https://baicao7788-cyber.github.io/recovery-helper/"
+WAKE, SLEEP, INTERVAL = 8 * 60, 22 * 60, 60
 
-ITEMS = [
-    ("07:30", "起床喝一杯温水", "", 1, TOTAL_DAYS),
-    ("08:00", "早餐", "看「吃什么」", 1, TOTAL_DAYS),
-    ("10:00", "上午走动", "第1周慢走5–10分钟，第2周约15分钟，第3–4周20–30分钟", 1, TOTAL_DAYS),
-    ("12:00", "午餐", "", 1, TOTAL_DAYS),
-    ("13:00", "午休 30–60 分钟", "", 1, TOTAL_DAYS),
-    ("15:30", "下午走动", "第1周慢走5–10分钟，第2周约15分钟，第3–4周20–30分钟", 1, TOTAL_DAYS),
-    ("16:00", "加餐＋喝水", "水果或酸奶，全天喝水 1.5–2 升", 1, TOTAL_DAYS),
-    ("18:00", "晚餐", "", 1, TOTAL_DAYS),
-    ("20:30", "看一眼伤口", "干燥、无红肿渗液就好", 1, 14),
-    ("21:00", "花 30 秒做今天的记录", "在「记录」里", 1, TOTAL_DAYS),
-    ("22:30", "准备睡觉，23 点前睡", "", 1, TOTAL_DAYS),
+PHASES = [
+    (1, 3, "屋里走 3–5 分钟", "扶着慢慢站起来，在屋里走 3–5 分钟。躺着时每小时做 10 次踝泵。"),
+    (4, 7, "走 5–10 分钟", "在屋里或楼下走 5–10 分钟，累了就停。"),
+    (8, 14, "走 10 分钟左右", "起来走 10 分钟左右；上午、下午各散步 15 分钟。"),
+    (15, 30, "站起来活动 3–5 分钟", "坐着别超过一小时；每天再散步 20–30 分钟。"),
 ]
 
 
@@ -39,7 +32,7 @@ def make_icon(size: int) -> Image.Image:
             break
         except OSError:
             continue
-    text = "愈"
+    text = "走"
     box = d.textbbox((0, 0), text, font=font)
     w, h = box[2] - box[0], box[3] - box[1]
     d.text(((size - w) / 2 - box[0], (size - h) / 2 - box[1]), text, fill="#ffffff", font=font)
@@ -66,36 +59,28 @@ def fold(line: str) -> str:
 def make_ics(surgery: dt.date, start: dt.date) -> str:
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//recovery-helper//CN", "CALSCALE:GREGORIAN",
-             "METHOD:PUBLISH", "X-WR-CALNAME:康复助手"]
+             "METHOD:PUBLISH", "X-WR-CALNAME:起来走走"]
+    slots = list(range(WAKE + INTERVAL, SLEEP - 30 + 1, INTERVAL))
+    start_n = max(1, (start - surgery).days)
     uid = 0
-
-    def event(day: dt.date, time: str, title: str, desc: str, count: int, alarm_min: int = 0):
-        nonlocal uid
-        uid += 1
-        h, m = map(int, time.split(":"))
-        begin = dt.datetime.combine(day, dt.time(h, m))
-        end = begin + dt.timedelta(minutes=10)
-        lines.extend(["BEGIN:VEVENT", f"UID:rh-static-{surgery}-{uid}@recovery-helper", f"DTSTAMP:{stamp}",
-                      f"DTSTART:{begin:%Y%m%dT%H%M%S}", f"DTEND:{end:%Y%m%dT%H%M%S}"])
-        if count > 1:
-            lines.append(f"RRULE:FREQ=DAILY;COUNT={count}")
-        lines.append(fold("SUMMARY:" + esc(title)))
-        if desc:
-            lines.append(fold("DESCRIPTION:" + esc(desc)))
-        lines.extend(["BEGIN:VALARM", "ACTION:DISPLAY", fold("DESCRIPTION:" + esc(title)),
-                      f"TRIGGER:-PT{alarm_min}M", "END:VALARM", "END:VEVENT"])
-
-    start_n = (start - surgery).days
-    for time, label, sub, frm, to in ITEMS:
+    for frm, to, short, desc in PHASES:
         frm = max(frm, start_n)
         if frm > to:
             continue
-        desc = (sub + "\n" if sub else "") + f"打卡：{URL}"
-        event(surgery + dt.timedelta(days=frm), time, "康复 · " + label, desc, to - frm + 1)
-    for n in (7, 14, 21, 28):
-        if n >= start_n:
-            event(surgery + dt.timedelta(days=n), "20:00", f"康复 · 看第 {n // 7} 周恢复评估",
-                  "打开康复助手「每周」页，愿意的话复制发给照顾小组", 1)
+        day = surgery + dt.timedelta(days=frm)
+        for t in slots:
+            uid += 1
+            begin = dt.datetime.combine(day, dt.time(t // 60, t % 60))
+            end = begin + dt.timedelta(minutes=5)
+            title = "起来走走 · " + short
+            lines += ["BEGIN:VEVENT", f"UID:stand-static-{surgery}-{uid}@recovery-helper", f"DTSTAMP:{stamp}",
+                      f"DTSTART:{begin:%Y%m%dT%H%M%S}", f"DTEND:{end:%Y%m%dT%H%M%S}"]
+            if to > frm:
+                lines.append(f"RRULE:FREQ=DAILY;COUNT={to - frm + 1}")
+            lines.append(fold("SUMMARY:" + esc(title)))
+            lines.append(fold("DESCRIPTION:" + esc(f"{desc}\n走完点一下：{URL}")))
+            lines += ["BEGIN:VALARM", "ACTION:DISPLAY", fold("DESCRIPTION:" + esc(title)),
+                      "TRIGGER:-PT0M", "END:VALARM", "END:VEVENT"]
     lines.append("END:VCALENDAR")
     return "\r\n".join(lines) + "\r\n"
 
